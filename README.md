@@ -14,6 +14,11 @@ Phone Call ← Telnyx ← Media Stream WS ← Bridge ← ElevenLabs Conversation
 - **Inbound (caller → AI):** PCMU μ-law 8kHz → PCM16 signed 16-bit 16kHz
 - **Outbound (AI → caller):** PCM16 16kHz → PCMU μ-law 8kHz
 
+## Requirements
+
+- **Python 3.9+** (tested on 3.9–3.13)
+- On **Python 3.13+**, the `audioop` module was removed from the standard library. The bridge automatically falls back to [`audioop-lts`](https://pypi.org/project/audioop-lts/), which is included in `requirements.txt` for Python ≥3.13.
+
 ## Quick Start
 
 ### 1. Install dependencies
