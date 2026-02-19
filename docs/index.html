@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telnyx ↔ ElevenLabs Bridge — Voice AI Protocol Bridge</title>
+<meta name="description" content="Open-source Python bridge connecting Telnyx Media Streaming to ElevenLabs Conversational AI. Real-time audio transcoding, protocol translation, and interruption handling.">
+<link rel="icon" href="https://telnyx.com/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#00C08B;--green-dark:#00A378;--navy:#1B1B3A;--navy-light:#2A2A50;--bg:#0D0D1A;--surface:#141428;--surface2:#1C1C36;--text:#E8E8F0;--text-muted:#9898B0;--border:rgba(255,255,255,0.08);--radius:12px;--code-bg:#0A0A18}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--green);text-decoration:none;transition:color .2s}
+a:hover{color:var(--green-dark)}
+code,pre{font-family:'JetBrains Mono','Fira Code',monospace}
+.container{max-width:1120px;margin:0 auto;padding:0 24px}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(13,13,26,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav .container{display:flex;align-items:center;justify-content:space-between;height:64px}
+.nav-brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:15px;color:var(--text)}
+.nav-brand img{height:28px;width:28px;border-radius:6px}
+.nav-links{display:flex;gap:28px}
+.nav-links a{color:var(--text-muted);font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--green)}
+.gh-btn{display:inline-flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text);transition:all .2s}
+.gh-btn:hover{background:var(--navy-light);color:var(--text);border-color:var(--green)}
+.gh-btn svg{width:18px;height:18px;fill:currentColor}
+
+/* Hero */
+.hero{padding:140px 0 80px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(0,192,139,0.08) 0%,transparent 70%);pointer-events:none}
+.hero-logos{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:32px}
+.hero-logos img{height:48px;width:48px;border-radius:12px}
+.hero-logos .arrow{color:var(--green);font-size:28px;font-weight:300}
+.hero h1{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:800;letter-spacing:-0.03em;line-height:1.1;margin-bottom:16px}
+.hero h1 .green{color:var(--green)}
+.hero .tagline{font-size:clamp(1rem,2vw,1.25rem);color:var(--text-muted);max-width:640px;margin:0 auto 40px;line-height:1.5}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:10px;font-weight:600;font-size:15px;transition:all .2s;border:none;cursor:pointer}
+.btn-primary{background:var(--green);color:var(--navy)}
+.btn-primary:hover{background:var(--green-dark);color:var(--navy);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,192,139,0.25)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--green);color:var(--green)}
+
+/* Architecture */
+.arch{padding:80px 0}
+.section-label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:12px}
+.section-title{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:700;letter-spacing:-0.02em;margin-bottom:40px}
+.arch-diagram{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 32px;overflow-x:auto}
+.arch-flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:nowrap;min-width:700px}
+.arch-node{text-align:center;padding:20px 24px;border-radius:12px;min-width:130px}
+.arch-node.phone{background:linear-gradient(135deg,#2A2A50,#1C1C36);border:1px solid var(--border)}
+.arch-node.telnyx{background:linear-gradient(135deg,rgba(0,192,139,0.15),rgba(0,192,139,0.05));border:1px solid rgba(0,192,139,0.3)}
+.arch-node.bridge{background:linear-gradient(135deg,rgba(0,192,139,0.2),rgba(27,27,58,0.8));border:2px solid var(--green);box-shadow:0 0 30px rgba(0,192,139,0.1)}
+.arch-node.eleven{background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(99,102,241,0.05));border:1px solid rgba(99,102,241,0.3)}
+.arch-node-icon{font-size:28px;margin-bottom:6px}
+.arch-node-label{font-weight:600;font-size:14px}
+.arch-node-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.arch-arrow{display:flex;flex-direction:column;align-items:center;padding:0 8px;color:var(--text-muted);font-size:11px;gap:2px;min-width:80px}
+.arch-arrow .line{width:60px;height:2px;background:var(--border);position:relative}
+.arch-arrow .line::after{content:'▶';position:absolute;right:-4px;top:-7px;font-size:10px;color:var(--text-muted)}
+.arch-arrow.bidi .line::before{content:'◀';position:absolute;left:-4px;top:-7px;font-size:10px;color:var(--text-muted)}
+.arch-detail{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
+.arch-detail-card{background:var(--code-bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px}
+.arch-detail-card h4{font-size:13px;font-weight:600;color:var(--green);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.arch-detail-card p{font-size:13px;color:var(--text-muted);line-height:1.5}
+.arch-detail-card code{background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px;color:var(--text)}
+
+/* Features */
+.features{padding:80px 0}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.feature-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;transition:all .2s}
+.feature-card:hover{border-color:rgba(0,192,139,0.3);transform:translateY(-2px)}
+.feature-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;background:rgba(0,192,139,0.1)}
+.feature-card h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.feature-card p{font-size:14px;color:var(--text-muted);line-height:1.5}
+
+/* Options */
+.options{padding:80px 0}
+.options-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px}
+.option-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 28px;position:relative;overflow:hidden}
+.option-card.recommended{border-color:var(--green)}
+.option-card.recommended::before{content:'RECOMMENDED';position:absolute;top:16px;right:-32px;background:var(--green);color:var(--navy);font-size:10px;font-weight:700;padding:4px 40px;transform:rotate(45deg);letter-spacing:0.05em}
+.option-card h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.option-card .subtitle{font-size:14px;color:var(--text-muted);margin-bottom:20px}
+.option-list{list-style:none;margin-bottom:24px}
+.option-list li{font-size:14px;padding:6px 0;display:flex;align-items:flex-start;gap:8px;color:var(--text-muted)}
+.option-list li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+
+/* Quick Start */
+.quickstart{padding:80px 0}
+.steps{display:flex;flex-direction:column;gap:24px;max-width:720px}
+.step{display:flex;gap:20px}
+.step-num{width:36px;height:36px;border-radius:50%;background:rgba(0,192,139,0.12);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0;margin-top:2px}
+.step-content h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.step-content p{font-size:14px;color:var(--text-muted);margin-bottom:10px}
+pre.code{background:var(--code-bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px;overflow-x:auto;font-size:13px;line-height:1.6;color:#C8C8E0}
+pre.code .comment{color:#6B6B8D}
+pre.code .cmd{color:var(--green)}
+
+/* Protocol */
+.protocol{padding:80px 0}
+.proto-table{width:100%;border-collapse:collapse;font-size:14px}
+.proto-table th{text-align:left;padding:10px 16px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);border-bottom:1px solid var(--border)}
+.proto-table td{padding:10px 16px;border-bottom:1px solid var(--border)}
+.proto-table code{background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:12px}
+.proto-table tr:hover td{background:rgba(0,192,139,0.03)}
+.proto-tables{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.proto-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.proto-card h4{padding:16px 20px;font-size:14px;font-weight:600;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.proto-card .dir{font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600}
+.dir-in{background:rgba(0,192,139,0.15);color:var(--green)}
+.dir-out{background:rgba(99,102,241,0.15);color:#8B8BFF}
+
+/* Footer */
+footer{padding:48px 0;border-top:1px solid var(--border);margin-top:40px}
+footer .container{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-brand{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-muted)}
+.footer-brand img{height:24px;width:24px;border-radius:6px}
+.footer-links{display:flex;gap:24px}
+.footer-links a{font-size:13px;color:var(--text-muted)}
+.footer-links a:hover{color:var(--green)}
+
+@media(max-width:768px){
+  .nav-links{display:none}
+  .arch-flow{min-width:auto;flex-wrap:wrap;gap:8px}
+  .arch-arrow{min-width:50px}
+  .arch-detail,.proto-tables{grid-template-columns:1fr}
+  .options-grid{grid-template-columns:1fr}
+  .hero{padding:120px 0 60px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="#" class="nav-brand">
+      <img src="https://telnyx.com/apple-touch-icon.png" alt="Telnyx">
+      <span>Telnyx ↔ ElevenLabs Bridge</span>
+    </a>
+    <div class="nav-links">
+      <a href="#architecture">Architecture</a>
+      <a href="#features">Features</a>
+      <a href="#options">Options</a>
+      <a href="#quickstart">Quick Start</a>
+    </div>
+    <a href="https://github.com/danilo-telnyx/telnyx-elevenlabs-bridge" class="gh-btn">
+      <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-logos">
+      <img src="https://telnyx.com/apple-touch-icon.png" alt="Telnyx">
+      <span class="arrow">⇄</span>
+      <img src="https://elevenlabs.io/apple-touch-icon.png" alt="ElevenLabs">
+    </div>
+    <h1>Telnyx <span class="green">↔</span> ElevenLabs Bridge</h1>
+    <p class="tagline">Open-source Python bridge that connects Telnyx phone calls to ElevenLabs Conversational AI — real-time audio transcoding, protocol translation, and bidirectional streaming.</p>
+    <div class="hero-actions">
+      <a href="#quickstart" class="btn btn-primary">Get Started</a>
+      <a href="https://github.com/danilo-telnyx/telnyx-elevenlabs-bridge" class="btn btn-outline">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        View Source
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section class="arch" id="architecture">
+  <div class="container">
+    <div class="section-label">⚡ Architecture</div>
+    <h2 class="section-title">How It Works</h2>
+    <div class="arch-diagram">
+      <div class="arch-flow">
+        <div class="arch-node phone">
+          <div class="arch-node-icon">📞</div>
+          <div class="arch-node-label">Phone Call</div>
+          <div class="arch-node-sub">PSTN / SIP</div>
+        </div>
+        <div class="arch-arrow bidi">
+          <span>voice</span>
+          <div class="line"></div>
+        </div>
+        <div class="arch-node telnyx">
+          <div class="arch-node-icon"><img src="https://telnyx.com/apple-touch-icon.png" alt="Telnyx" style="width:28px;height:28px;border-radius:6px"></div>
+          <div class="arch-node-label">Telnyx</div>
+          <div class="arch-node-sub">Media Stream WS</div>
+        </div>
+        <div class="arch-arrow bidi">
+          <span>PCMU μ-law</span>
+          <div class="line"></div>
+        </div>
+        <div class="arch-node bridge">
+          <div class="arch-node-icon">🔄</div>
+          <div class="arch-node-label">Bridge</div>
+          <div class="arch-node-sub">This Service</div>
+        </div>
+        <div class="arch-arrow bidi">
+          <span>PCM16 16kHz</span>
+          <div class="line"></div>
+        </div>
+        <div class="arch-node eleven">
+          <div class="arch-node-icon"><img src="https://elevenlabs.io/apple-touch-icon.png" alt="ElevenLabs" style="width:28px;height:28px;border-radius:6px"></div>
+          <div class="arch-node-label">ElevenLabs</div>
+          <div class="arch-node-sub">Conversational AI</div>
+        </div>
+      </div>
+      <div class="arch-detail">
+        <div class="arch-detail-card">
+          <h4>→ Inbound (Caller → AI)</h4>
+          <p>PCMU μ-law 8kHz → <code>PCM16 signed 16-bit 16kHz</code></p>
+        </div>
+        <div class="arch-detail-card">
+          <h4>← Outbound (AI → Caller)</h4>
+          <p>PCM16 16kHz → <code>PCMU μ-law 8kHz</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-label">✨ Features</div>
+    <h2 class="section-title">Built for Production Voice AI</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎵</div>
+        <h3>Audio Transcoding</h3>
+        <p>Real-time conversion between PCMU μ-law 8kHz (telephony) and PCM16 16kHz (AI), with automatic sample rate adjustment.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔀</div>
+        <h3>Protocol Translation</h3>
+        <p>Seamless mapping between Telnyx Media Streaming WebSocket events and ElevenLabs Conversational AI protocol messages.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Interruption Handling</h3>
+        <p>When the user speaks over the AI, interruption events trigger an immediate audio clear — no awkward overlap.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔢</div>
+        <h3>DTMF Support</h3>
+        <p>Keypad tones are captured and forwarded to ElevenLabs as contextual updates, enabling IVR-style interactions.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <h3>Private Agent Support</h3>
+        <p>Supports both public and private ElevenLabs agents with signed URL authentication when needed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🐍</div>
+        <h3>Python 3.9–3.13+</h3>
+        <p>Compatible across Python versions with automatic audioop-lts fallback for Python 3.13+ where audioop was removed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Options -->
+<section class="options" id="options">
+  <div class="container">
+    <div class="section-label">🛤️ Two Paths</div>
+    <h2 class="section-title">Choose Your Integration</h2>
+    <div class="options-grid">
+      <div class="option-card recommended">
+        <h3>Telnyx AI Gateway</h3>
+        <p class="subtitle">Zero infrastructure — Telnyx connects to ElevenLabs natively</p>
+        <ul class="option-list">
+          <li>No bridge server required</li>
+          <li>Built-in audio transcoding by Telnyx</li>
+          <li>Configure via Telnyx Portal or API</li>
+          <li>Automatic scaling and reliability</li>
+          <li>Ideal for production deployments</li>
+        </ul>
+        <a href="https://telnyx.com/products/ai" class="btn btn-primary" style="width:100%;justify-content:center">Learn More →</a>
+      </div>
+      <div class="option-card">
+        <h3>Custom Bridge (This Repo)</h3>
+        <p class="subtitle">Full control with your own bridge server</p>
+        <ul class="option-list">
+          <li>Full protocol visibility and customization</li>
+          <li>Custom audio processing pipeline</li>
+          <li>Middleware for logging, analytics, transforms</li>
+          <li>Self-hosted, open-source (MIT)</li>
+          <li>Ideal for development and custom workflows</li>
+        </ul>
+        <a href="#quickstart" class="btn btn-outline" style="width:100%;justify-content:center">Quick Start →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Start -->
+<section class="quickstart" id="quickstart">
+  <div class="container">
+    <div class="section-label">🚀 Quick Start</div>
+    <h2 class="section-title">Up and Running in 3 Steps</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Clone &amp; Install</h3>
+          <pre class="code"><span class="cmd">git clone</span> https://github.com/danilo-telnyx/telnyx-elevenlabs-bridge.git
+<span class="cmd">cd</span> telnyx-elevenlabs-bridge
+<span class="cmd">python3 -m venv</span> venv && <span class="cmd">source</span> venv/bin/activate
+<span class="cmd">pip install</span> -r requirements.txt</pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>Configure</h3>
+          <p>Copy the example env and add your ElevenLabs Agent ID:</p>
+          <pre class="code"><span class="cmd">cp</span> .env.example .env
+<span class="comment"># Edit .env with your credentials:</span>
+<span class="comment"># ELEVENLABS_AGENT_ID=your-agent-id</span>
+<span class="comment"># ELEVENLABS_API_KEY=key (only for private agents)</span></pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>Run</h3>
+          <p>Start the bridge, then point your Telnyx call's <code>stream_url</code> to it:</p>
+          <pre class="code"><span class="cmd">python</span> bridge.py
+<span class="comment"># Listening on ws://0.0.0.0:8765/media-stream</span>
+
+<span class="comment"># For development, expose with ngrok:</span>
+<span class="cmd">ngrok http</span> 8765</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Protocol Reference -->
+<section class="protocol" id="protocol">
+  <div class="container">
+    <div class="section-label">📋 Reference</div>
+    <h2 class="section-title">Protocol Translation Map</h2>
+    <div class="proto-tables">
+      <div class="proto-card">
+        <h4><span class="dir dir-in">INBOUND</span> Telnyx → ElevenLabs</h4>
+        <table class="proto-table">
+          <thead><tr><th>Telnyx Event</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><code>connected</code></td><td>Open ElevenLabs WS</td></tr>
+            <tr><td><code>start</code></td><td>Log stream metadata</td></tr>
+            <tr><td><code>media</code></td><td>Transcode → <code>user_audio_chunk</code></td></tr>
+            <tr><td><code>dtmf</code></td><td><code>contextual_update</code></td></tr>
+            <tr><td><code>stop</code></td><td>Close ElevenLabs WS</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="proto-card">
+        <h4><span class="dir dir-out">OUTBOUND</span> ElevenLabs → Telnyx</h4>
+        <table class="proto-table">
+          <thead><tr><th>ElevenLabs Event</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><code>audio</code></td><td>Transcode → Telnyx <code>media</code></td></tr>
+            <tr><td><code>interruption</code></td><td>Send <code>clear</code> to Telnyx</td></tr>
+            <tr><td><code>ping</code></td><td>Respond with <code>pong</code></td></tr>
+            <tr><td><code>user_transcript</code></td><td>Log transcription</td></tr>
+            <tr><td><code>agent_response</code></td><td>Log agent response</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-brand">
+      <img src="https://telnyx.com/apple-touch-icon.png" alt="Telnyx">
+      <span>Built with Telnyx Media Streaming &amp; ElevenLabs Conversational AI</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/danilo-telnyx/telnyx-elevenlabs-bridge">GitHub</a>
+      <a href="https://developers.telnyx.com">Telnyx Docs</a>
+      <a href="https://elevenlabs.io/docs">ElevenLabs Docs</a>
+      <a href="https://telnyx.com">telnyx.com</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
